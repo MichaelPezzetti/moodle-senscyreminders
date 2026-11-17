@@ -1,0 +1,11 @@
+# Never commit site data or credentials.
+config.php
+**/config.php
+moodledata/
+vendor/
+.env
+.env.*
+*.csv
+*.sql
+*.log
+.DS_Store

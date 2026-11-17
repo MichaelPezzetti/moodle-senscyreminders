@@ -1,0 +1,66 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<XMLDB PATH="local/senscyreminders/db" VERSION="20261116" COMMENT="Monthly training reminders">
+  <TABLES>
+    <TABLE NAME="local_scr_campaigns" COMMENT="local_scr_campaigns">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true" />
+        <FIELD NAME="courseid" TYPE="int" NOTNULL="true" SEQUENCE="false" LENGTH="10" DEFAULT="0" />
+        <FIELD NAME="name" TYPE="char" NOTNULL="true" SEQUENCE="false" LENGTH="255" />
+        <FIELD NAME="period" TYPE="char" NOTNULL="true" SEQUENCE="false" LENGTH="7" />
+        <FIELD NAME="timezone" TYPE="char" NOTNULL="true" SEQUENCE="false" LENGTH="100" DEFAULT="America/New_York" />
+        <FIELD NAME="cmids" TYPE="text" NOTNULL="true" SEQUENCE="false" />
+        <FIELD NAME="delaydays" TYPE="int" NOTNULL="true" SEQUENCE="false" LENGTH="2" DEFAULT="7" />
+        <FIELD NAME="sendhour" TYPE="int" NOTNULL="true" SEQUENCE="false" LENGTH="2" DEFAULT="9" />
+        <FIELD NAME="firstsend" TYPE="int" NOTNULL="true" SEQUENCE="false" LENGTH="10" DEFAULT="0" />
+        <FIELD NAME="senddates" TYPE="text" NOTNULL="false" SEQUENCE="false" />
+        <FIELD NAME="bodyformat" TYPE="int" NOTNULL="true" SEQUENCE="false" LENGTH="2" DEFAULT="2" />
+        <FIELD NAME="allh5p" TYPE="int" NOTNULL="true" SEQUENCE="false" LENGTH="1" DEFAULT="0" />
+        <FIELD NAME="trainingurl" TYPE="char" NOTNULL="true" SEQUENCE="false" LENGTH="1024" />
+        <FIELD NAME="logourl" TYPE="char" NOTNULL="true" SEQUENCE="false" LENGTH="1024" />
+        <FIELD NAME="logohash" TYPE="char" NOTNULL="true" SEQUENCE="false" LENGTH="64" />
+        <FIELD NAME="approvedbranch" TYPE="char" NOTNULL="true" SEQUENCE="false" LENGTH="10" />
+        <FIELD NAME="subject" TYPE="char" NOTNULL="true" SEQUENCE="false" LENGTH="255" />
+        <FIELD NAME="body" TYPE="text" NOTNULL="true" SEQUENCE="false" />
+        <FIELD NAME="enabled" TYPE="int" NOTNULL="true" SEQUENCE="false" LENGTH="1" DEFAULT="0" />
+        <FIELD NAME="approvedhash" TYPE="char" NOTNULL="true" SEQUENCE="false" LENGTH="64" />
+        <FIELD NAME="approvedby" TYPE="int" NOTNULL="true" SEQUENCE="false" LENGTH="10" DEFAULT="0" />
+        <FIELD NAME="approvedat" TYPE="int" NOTNULL="true" SEQUENCE="false" LENGTH="10" DEFAULT="0" />
+        <FIELD NAME="cursorid" TYPE="int" NOTNULL="true" SEQUENCE="false" LENGTH="10" DEFAULT="0" />
+        <FIELD NAME="cursorslot" TYPE="int" NOTNULL="true" SEQUENCE="false" LENGTH="10" DEFAULT="-1" />
+        <FIELD NAME="timecreated" TYPE="int" NOTNULL="true" SEQUENCE="false" LENGTH="10" DEFAULT="0" />
+        <FIELD NAME="timemodified" TYPE="int" NOTNULL="true" SEQUENCE="false" LENGTH="10" DEFAULT="0" />
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id" />
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="courseperiod" UNIQUE="true" FIELDS="courseid, period" />
+      </INDEXES>
+    </TABLE>
+    <TABLE NAME="local_scr_log" COMMENT="local_scr_log">
+      <FIELDS>
+        <FIELD NAME="id" TYPE="int" LENGTH="10" NOTNULL="true" SEQUENCE="true" />
+        <FIELD NAME="campaignid" TYPE="int" NOTNULL="true" SEQUENCE="false" LENGTH="10" DEFAULT="0" />
+        <FIELD NAME="userid" TYPE="int" NOTNULL="true" SEQUENCE="false" LENGTH="10" DEFAULT="0" />
+        <FIELD NAME="slot" TYPE="int" NOTNULL="true" SEQUENCE="false" LENGTH="10" DEFAULT="0" />
+        <FIELD NAME="emailhash" TYPE="char" NOTNULL="true" SEQUENCE="false" LENGTH="64" />
+        <FIELD NAME="status" TYPE="char" NOTNULL="true" SEQUENCE="false" LENGTH="20" />
+        <FIELD NAME="reason" TYPE="char" NOTNULL="true" SEQUENCE="false" LENGTH="64" />
+        <FIELD NAME="evidencecmid" TYPE="int" NOTNULL="true" SEQUENCE="false" LENGTH="10" DEFAULT="0" />
+        <FIELD NAME="evidencetime" TYPE="int" NOTNULL="true" SEQUENCE="false" LENGTH="10" DEFAULT="0" />
+        <FIELD NAME="evidencekind" TYPE="char" NOTNULL="true" SEQUENCE="false" LENGTH="20" />
+        <FIELD NAME="evidenceid" TYPE="int" NOTNULL="true" SEQUENCE="false" LENGTH="10" DEFAULT="0" />
+        <FIELD NAME="timecreated" TYPE="int" NOTNULL="true" SEQUENCE="false" LENGTH="10" DEFAULT="0" />
+        <FIELD NAME="processedat" TYPE="int" NOTNULL="true" SEQUENCE="false" LENGTH="10" DEFAULT="0" />
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id" />
+      </KEYS>
+      <INDEXES>
+        <INDEX NAME="userslot" UNIQUE="true" FIELDS="campaignid, userid, slot" />
+        <INDEX NAME="addressslot" UNIQUE="false" FIELDS="campaignid, slot, emailhash" />
+        <INDEX NAME="userdata" UNIQUE="false" FIELDS="userid" />
+      </INDEXES>
+    </TABLE>
+  </TABLES>
+</XMLDB>
