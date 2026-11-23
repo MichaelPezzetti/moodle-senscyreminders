@@ -1,3 +1,3 @@
-4407ec68ac321c2a2f144be36eba1da73115953deccfa1770db9b66845125308  local_senscyreminders-0.4.0.zip
-4b086bdd190d3752e0dad2729dcd741da0e7d61bc9c6e111881d175c93a10b08  mod_senscyreminder-0.1.0.zip
-4a99257d2ef62dbf4db8afab30f2bc8faa168ad9a10a14a2b11cf576bedda1f8  SensCy-Reminders-Activity-Bundle-0.4.0.zip
+7db03285447025d6df90dee60b5c60376bd9a7b8b238227435cff90aac2cbb36  local_senscyreminders-0.4.0.zip
+6a366fff344ac0ddf3b712de44a2f637a1bd42ca2dfaa7b19a8af2d0bedbaa37  mod_senscyreminder-0.1.0.zip
+605e3c63db4f10511c56fe5401553166780d31e70688280494ae8a3ad771686a  SensCy-Reminders-Activity-Bundle-0.4.0.zip
