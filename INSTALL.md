@@ -2,10 +2,10 @@
 
 This bundle contains two Moodle plugin ZIPs. **Extract this bundle first. Do not upload the outer bundle to Moodle's plugin installer.**
 
-1. Install or upgrade **local_senscyreminders-0.3.1.zip** using Site administration > Plugins > Install plugins, then complete Notifications.
+1. Install or upgrade **local_senscyreminders-0.4.0.zip** using Site administration > Plugins > Install plugins, then complete Notifications.
 2. Install **mod_senscyreminder-0.1.0.zip**, then complete Notifications.
 
-If the activity plugin is already installed at 0.1.0, keep it and upgrade only the engine to 0.3.1. There is no need to reinstall the same activity version.
+If the activity plugin is already installed at 0.1.0, keep it and upgrade only the engine to 0.4.0. There is no need to reinstall the same activity version.
 
 3. In your existing training course, turn editing on and choose **Add an activity or resource > Training reminders**.
 4. Keep the activity hidden from students and save/display. One activity manages this course's reminder runs; do not create an activity for each video or month.
@@ -39,3 +39,10 @@ Use DEV first. Automated tests and a local-only SMTP capture verify the implemen
 Disable overlapping Re-engagement or other reminder automation. Installing this activity does not stop another plugin's queued messages. Stop All cannot recall a message already handed to the mail server. Some email clients block remote logos or prefer plain text.
 
 The local XAMPP site retains its email guard and sending OFF. Production has not been modified.
+
+
+## Testing with diverted email
+
+Engine 0.4.0 adds **Bounded DEV diversion testing** under the controls’ Settings link. Keep global Moodle diversion enabled with no exceptions. Configure the exact DEV site root, matching single diversion mailbox, course ID, 1–10 allowed learner IDs and an expiry within 48 hours (America/New_York). Review the preview and explicitly Start / Resume after saving. Only the selected learners are considered; completed learners are suppressed normally. Test messages use the learner’s names but are explicitly addressed to the test inbox and tagged `[DEV TEST user <id>]`. Maximum ten attempts per run. Missing diversion or changed settings stop sending; there is no silent fallback to client addresses. See the engine README for the complete policy.
+
+Upgrading the engine pauses all sending and revokes prior approval while preserving messages and history. Keep the existing activity at 0.1.0. This update must be installed on DEV before these test settings exist.

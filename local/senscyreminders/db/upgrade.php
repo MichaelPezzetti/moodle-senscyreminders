@@ -67,6 +67,14 @@ function xmldb_local_senscyreminders_upgrade($oldversion): bool {
         $DB->execute('UPDATE {local_scr_campaigns} SET enabled=0,approvedhash=:empty', ['empty' => '']);
         upgrade_plugin_savepoint(true, 2026111700, 'local', 'senscyreminders');
     }
+    if ($oldversion < 2026112300) {
+        $manager=$DB->get_manager();$table=new xmldb_table('local_scr_campaigns');
+        $field=new xmldb_field('approvedpolicyhash',XMLDB_TYPE_CHAR,'64',null,XMLDB_NOTNULL);
+        if (!$manager->field_exists($table,$field)) { $manager->add_field($table,$field); }
+        set_config('enabled',0,'local_senscyreminders');
+        $DB->execute('UPDATE {local_scr_campaigns} SET enabled=0,approvedhash=:empty,approvedpolicyhash=:policy', ['empty'=>'','policy'=>'']);
+        upgrade_plugin_savepoint(true,2026112300,'local','senscyreminders');
+    }
     return true;
 }
 

@@ -96,6 +96,7 @@ try {
             'timezone' => 'America/New_York', 'cmids' => (string)$cmid, 'delaydays' => 7, 'sendhour' => 9,
             'subject' => 'Reminder {month}', 'body' => 'Hi {firstname}: {courselink}', 'enabled' => 1,
             'bodyformat' => FORMAT_PLAIN, 'approvedbranch' => service::platform_branch(), 'logohash' => '',
+            'approvedpolicyhash' => \local_senscyreminders\delivery_policy::signature(),
             'allh5p' => 0, 'trainingurl' => 'https://cyberhealth.senscy.com/course/view.php?id=14', 'logourl' => '',
             'approvedby' => 0, 'approvedat' => time(), 'approvedhash' => '', 'cursorid' => 0, 'cursorslot' => -1,
             'timecreated' => time(), 'timemodified' => time()];
@@ -260,6 +261,7 @@ try {
     $check(strpos($formhtml,'firstsendtext')!==false && strpos($formhtml,'body_editor')!==false
         && strpos($formhtml,'trainingurl')!==false, 'Date, HTML editor and training link controls render');
     $DB->set_field('course','visible',1,['id'=>$course->id]);
+    require __DIR__ . '/diversion_checks.php';
     if ($DB->get_manager()->table_exists('senscyreminder')) {
         require $CFG->dirroot . '/mod/senscyreminder/tests/activity_checks.php';
     }

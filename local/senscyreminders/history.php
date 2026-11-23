@@ -13,6 +13,7 @@ $PAGE->set_title('Reminder history');
 $PAGE->set_heading('Reminder history: ' . $campaign->name);
 echo $OUTPUT->header();
 echo $OUTPUT->notification(get_string('historynote', 'local_senscyreminders'), 'info');
+echo $OUTPUT->notification('A dev_diversion_accepted entry is a test submission to the configured test mailbox, not a delivery to the learner. submitted still means mail transport acceptance, not confirmed inbox delivery.', 'info');
 echo html_writer::link(\local_senscyreminders\service::manage_url((int)$campaign->courseid), 'Reminder controls');
 $table = new html_table();
 $table->head = ['User', 'Sending date', 'Status', 'Reason', 'Processed'];

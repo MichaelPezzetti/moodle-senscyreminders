@@ -45,3 +45,6 @@ $string['privacy:metadata:approvals'] = 'Administrator campaign approvals.';
 $string['privacy:records'] = 'Training reminder data';
 $string['invalidlogo'] = 'Upload one PNG, JPEG or GIF image, at most 512 KB and 4000 pixels per dimension.';
 $string['nofuturedates'] = 'No remaining sending dates are enabled. Prepare the next training run.';
+
+$string['deliveryblocked'] = 'Sending is blocked by the delivery policy: {$a}';
+$string['reason_devtest_outside_scope'] = 'Outside the configured DEV test scope — suppress';

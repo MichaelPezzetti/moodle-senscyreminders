@@ -45,7 +45,7 @@ if ($download) {
     }
     exit;
 }
-echo $OUTPUT->header();
+echo $OUTPUT->header();if ($deliverynotice=\local_senscyreminders\delivery_policy::describe()) {    echo $OUTPUT->notification(s($deliverynotice),'warning');}
 echo $OUTPUT->notification(get_string('previewnote', 'local_senscyreminders'), 'info');
 echo $OUTPUT->heading(s($campaign->name) . ' / ' . s($campaign->period), 3);
 echo html_writer::link(service::manage_url((int)$campaign->courseid), 'Reminder controls') . ' | '

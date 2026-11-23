@@ -23,7 +23,7 @@ final class service {
         return preg_match('/^\d+\.\d+/', $release, $match) ? $match[0] : '';
     }
 
-    public static function runtime_reason(object $campaign): string {
+    public static function runtime_reason(object $campaign, ?int $now=null): string {
         global $DB, $CFG;
         if ($DB->get_manager()->table_exists('senscyreminder')
                 && $DB->record_exists('senscyreminder', ['course' => $campaign->courseid])) {
@@ -44,7 +44,10 @@ final class service {
         if (($campaign->logohash ?? '') !== assets::hash((int)$campaign->id)) {
             return 'logo_changed';
         }
-        return '';
+        if (empty($campaign->approvedpolicyhash) || !hash_equals(delivery_policy::signature(),$campaign->approvedpolicyhash)) {
+            return 'delivery_policy_changed';
+        }
+        return delivery_policy::reason($campaign,null,$now);
     }
 
     public static function activity_ids(object $campaign): array {
@@ -83,6 +86,9 @@ final class service {
             if ($errors = self::validate($campaign)) {
                 throw new \moodle_exception('invalidcampaign', 'local_senscyreminders', '', implode(' ', $errors));
             }
+            if ($reason=delivery_policy::reason($campaign)) {
+                throw new \moodle_exception('deliveryblocked','local_senscyreminders','',delivery_policy::describe().' '.$reason);
+            }
             $usable = false;
             foreach (rules::schedule($campaign) as $date) {
                 $dayend = (new \DateTimeImmutable('@' . $date['time']))->setTimezone(new \DateTimeZone($campaign->timezone))->modify('tomorrow')->setTime(0, 0)->getTimestamp();
@@ -92,6 +98,7 @@ final class service {
             $campaign->approvedbranch = self::platform_branch();
             $campaign->logohash = assets::hash($id);
             $campaign->approvedhash = rules::fingerprint($campaign);
+            $campaign->approvedpolicyhash = delivery_policy::signature();
             $campaign->approvedby = $actor; $campaign->approvedat = time();
             $campaign->enabled = 1; $campaign->cursorid = 0; $campaign->cursorslot = -1;
             // This version controls a single training run. Resuming it cannot resurrect another stopped run.
@@ -156,22 +163,34 @@ final class service {
         return $errors;
     }
 
-    public static function candidate_sql(object $campaign): array {
+    public static function candidate_sql(object $campaign, ?int $now=null): array {
+        global $DB;
         $context = \context_course::instance($campaign->courseid);
         [$enrolled, $params] = get_enrolled_sql($context, 'moodle/course:isincompletionreports', 0, true);
+        $scope='';$params+=['scrguest'=>guest_user()->id];
+        if (delivery_policy::read()['configured']) {
+            if (delivery_policy::reason($campaign,null,$now)) { $scope=' AND 1=0'; }
+            else {
+                [$insql,$bound]=$DB->get_in_or_equal(delivery_policy::ids(),SQL_PARAMS_NAMED,'devuid');
+                $scope=' AND u.id '.$insql;$params+=$bound;
+            }
+        }
         return ["SELECT u.* FROM {user} u JOIN ($enrolled) e ON e.id=u.id
-                  WHERE u.deleted=0 AND u.suspended=0 AND u.id<>:scrguest", $params + ['scrguest' => guest_user()->id]];
+                  WHERE u.deleted=0 AND u.suspended=0 AND u.id<>:scrguest".$scope, $params];
     }
 
-    public static function candidates(object $campaign, int $after = 0, int $limit = 250): array {
+    public static function candidates(object $campaign, int $after = 0, int $limit = 250, ?int $now=null): array {
         global $DB;
-        [$sql, $params] = self::candidate_sql($campaign);
+        [$sql, $params] = self::candidate_sql($campaign,$now);
         return $DB->get_records_sql($sql . ' AND u.id>:scrafter ORDER BY u.id', $params + ['scrafter' => $after], 0, $limit);
     }
 
     /** Fetch completion records directly, avoiding cached states left over from preview. */
     public static function evaluate(object $campaign, object $user, int $now, int $excluding = 0): array {
         global $DB;
+        if (delivery_policy::read()['configured'] && delivery_policy::reason($campaign,$user,$now)) {
+            return ['reason'=>'devtest_outside_scope'];
+        }
         $course = $DB->get_record('course', ['id' => $campaign->courseid]);
         if (!$course || !$course->visible || !$course->enablecompletion) {
             return ['reason' => 'course_unavailable'];
@@ -246,12 +265,22 @@ final class service {
         return [$subject, $plain];
     }
 
-    public static function send(object $campaign, object $user): bool {
+    public static function send(object $campaign, object $user, int $reservation=0): bool {
         global $CFG;
-        if (!empty($CFG->noemailever) || !empty($CFG->divertallemailsto) || !empty($CFG->divertallemailsexcept)) {
+        $policy=delivery_policy::read();
+        if (!empty($CFG->noemailever) || delivery_policy::reason($campaign,$user,null,$policy)
+                || !delivery_policy::budget($campaign,$reservation)
+                || (isset($campaign->approvedpolicyhash) && !hash_equals(delivery_policy::signature($policy),$campaign->approvedpolicyhash))) {
             return false;
         }
         [$subject, $body, $html] = message::render($campaign, $user);
+        if ($policy['configured']) {
+            // Belt and braces: original client address never reaches the mailer, even if diversion changes mid-call.
+            $subject='[DEV TEST user '.(int)$user->id.'] '.$subject;
+            $recipient=clone $user;
+            $recipient->email=$policy['values']['devtestemail'];
+            return email_to_user($recipient,\core_user::get_noreply_user(),$subject,$body,$html);
+        }
         // Immediate Moodle email transport, not a second delayed notification queue.
         return email_to_user($user, \core_user::get_noreply_user(), $subject, $body, $html);
     }
@@ -273,11 +302,10 @@ final class service {
             $campaign = $DB->get_record(self::CAMPAIGNS, ['id' => $id], '*', MUST_EXIST);
             $slot = rules::slot($campaign, $now);
             if (!self::global_enabled() || !$campaign->enabled || $slot === null || self::validate($campaign)
-                    || !hash_equals(rules::fingerprint($campaign), $campaign->approvedhash) || self::runtime_reason($campaign)) {
+                    || !hash_equals(rules::fingerprint($campaign), $campaign->approvedhash) || self::runtime_reason($campaign,$now)) {
                 return $totals;
             }
-            if ($transport === null && (!empty($CFG->noemailever) || !empty($CFG->divertallemailsto)
-                    || !empty($CFG->divertallemailsexcept))) {
+            if ($transport === null && !empty($CFG->noemailever)) {
                 return $totals; // Never mark an email submitted when the site blocks or diverts it.
             }
             if ($transport === null && $DB->is_transaction_started()) {
@@ -286,12 +314,12 @@ final class service {
             $cursor = (int)$campaign->cursorslot === $slot ? (int)$campaign->cursorid : 0;
             $limit = max(1, min(1000, (int)get_config('local_senscyreminders', 'batchsize') ?: 250));
             $began = microtime(true);
-            foreach (self::candidates($campaign, $cursor, $limit) as $candidate) {
+            foreach (self::candidates($campaign, $cursor, $limit,$now) as $candidate) {
                 // Pause/config/completion checks occur inside the dispatch loop, not at queue creation.
                 $fresh = $DB->get_record(self::CAMPAIGNS, ['id' => $id], '*', MUST_EXIST);
                 if (!self::global_enabled() || !$fresh->enabled || !hash_equals($campaign->approvedhash, $fresh->approvedhash)
                         || !hash_equals(rules::fingerprint($fresh), $fresh->approvedhash)
-                        || self::runtime_reason($fresh)
+                        || self::runtime_reason($fresh,$fixednow??time())
                         || rules::slot($fresh, $fixednow ?? time()) !== $slot) {
                     break;
                 }
@@ -303,6 +331,7 @@ final class service {
                     'campaignid=:c AND slot=:s AND emailhash=:e AND status IN (:reserved,:submitted,:held)',
                     ['c' => $id, 's' => $slot, 'e' => $emailhash, 'reserved' => 'reserved', 'submitted' => 'submitted', 'held' => 'held']);
                 if (!$existing) {
+                    if ($decision['reason']==='remind' && !$sameaddress && !delivery_policy::budget($fresh)) { break; }
                     $row = (object)['campaignid' => $id, 'userid' => $user->id, 'slot' => $slot,
                         'emailhash' => $emailhash, 'status' => 'suppressed',
                         'reason' => $decision['reason'], 'evidencecmid' => $decision['cmid'] ?? 0,
@@ -324,7 +353,7 @@ final class service {
                             if (!self::global_enabled() || !$finalcampaign->enabled
                                     || !hash_equals($campaign->approvedhash, $finalcampaign->approvedhash)
                                     || !hash_equals(rules::fingerprint($finalcampaign), $finalcampaign->approvedhash)
-                                    || self::runtime_reason($finalcampaign)
+                                    || self::runtime_reason($finalcampaign,$fixednow??time())
                                     || rules::slot($finalcampaign, $fixednow ?? time()) !== $slot) {
                                 $row->status = 'suppressed';
                                 $row->reason = 'paused_or_changed';
@@ -336,9 +365,9 @@ final class service {
                                 $row->evidencekind = $finaldecision['evidencekind'] ?? '';
                                 $row->evidenceid = $finaldecision['evidenceid'] ?? 0;
                             } else {
-                                $ok = $transport ? $transport($finalcampaign, $finaluser) : self::send($finalcampaign, $finaluser);
+                                $ok = $transport ? $transport($finalcampaign, $finaluser) : self::send($finalcampaign, $finaluser,$row->id);
                                 $row->status = $ok ? 'submitted' : 'held';
-                                $row->reason = $ok ? 'transport_accepted' : 'transport_unconfirmed';
+                                $row->reason = $ok ? (delivery_policy::read()['configured'] ? 'dev_diversion_accepted' : 'transport_accepted') : 'transport_unconfirmed';
                             }
                         } catch (\Throwable $e) {
                             $row->status = 'held';

@@ -33,7 +33,7 @@ if ($data = $form->get_data()) {
         $row->body = \local_senscyreminders\message::clean_template($data->body_editor['text']); $row->bodyformat = FORMAT_HTML;
         $row->trainingurl = $data->trainingurl; $row->logourl = $data->logourl; $row->allh5p = 1;
         $row->cmids = implode(',', array_keys(service::activities($courseid)));
-        $row->enabled = 0; $row->approvedhash = ''; $row->approvedby = 0; $row->approvedat = 0; $row->approvedbranch = '';
+        $row->enabled = 0; $row->approvedhash = ''; $row->approvedpolicyhash = ''; $row->approvedby = 0; $row->approvedat = 0; $row->approvedbranch = '';
         $row->cursorid = 0; $row->cursorslot = -1; $row->timemodified = time();
         if ($errors = service::validate($row)) { throw new moodle_exception('invalidcampaign', 'local_senscyreminders', '', implode(' ', $errors)); }
         if ($id) { $DB->update_record(service::CAMPAIGNS, $row); }

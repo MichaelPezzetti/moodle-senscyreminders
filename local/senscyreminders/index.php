@@ -46,7 +46,7 @@ if ($action && $_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             unset($date);
             $campaign->senddates = json_encode($dates);
-            $campaign->approvedhash = ''; $campaign->approvedbranch = '';
+            $campaign->approvedhash = ''; $campaign->approvedpolicyhash = ''; $campaign->approvedbranch = '';
             $campaign->approvedby = 0; $campaign->approvedat = 0; $campaign->enabled = 0;
             $campaign->cursorid = 0;
             $campaign->cursorslot = -1;
@@ -63,8 +63,8 @@ echo '<form method="post" action="' . (new moodle_url('/local/senscyreminders/in
 echo html_writer::tag('p', 'Stop All blocks later submissions immediately and pauses every run. A message already handed to the mail server cannot be recalled.');
 echo $OUTPUT->notification(get_string('introduction', 'local_senscyreminders'), 'info');
 echo $OUTPUT->notification(service::global_enabled() ? get_string('liveon', 'local_senscyreminders') : get_string('liveoff', 'local_senscyreminders'), service::global_enabled() ? 'warning' : 'info');
-if (!empty($CFG->noemailever) || !empty($CFG->divertallemailsto) || !empty($CFG->divertallemailsexcept)) {
-    echo $OUTPUT->notification(get_string('siteemailblocked', 'local_senscyreminders'), 'info');
+if ($deliverynotice=\local_senscyreminders\delivery_policy::describe()) {
+    echo $OUTPUT->notification(s($deliverynotice),'warning');
 }
 echo html_writer::link(new moodle_url('/admin/settings.php', ['section' => 'local_senscyreminders']), get_string('settings'));
 $table = new html_table();
@@ -74,10 +74,18 @@ foreach ($DB->get_records(service::CAMPAIGNS, $runfilter, 'period DESC,id DESC')
     $course = $DB->get_record('course', ['id' => $campaign->courseid]) ?: (object)['fullname' => 'Course removed'];
     [, $monthend] = rules::window($campaign->period, $campaign->timezone);
     $holds = ['platform_changed' => 'Review and resume after Moodle upgrade', 'site_maintenance' => 'Held during site maintenance',
-        'logo_changed' => 'Logo changed; review and resume', 'activity_unavailable' => 'Activity being deleted; sending held'];
+        'logo_changed' => 'Logo changed; review and resume', 'activity_unavailable' => 'Activity being deleted; sending held',
+        'delivery_policy_changed'=>'Delivery settings changed; review and resume',
+        'devtest_expired'=>'DEV test expired; sending stopped',
+        'devtest_diversion_mismatch'=>'DEV diversion changed or missing; sending stopped',
+        'devtest_disabled'=>'DEV test disabled; sending stopped',
+        'devtest_wrong_site'=>'DEV site binding mismatch; sending stopped',
+        'devtest_outside_scope'=>'Outside the DEV test course; sending stopped'];
     $hold = service::runtime_reason($campaign);
     $status = $monthend->getTimestamp() <= time() ? 'Ended' : (!$campaign->enabled ? 'Paused / draft' :
-        ($holds[$hold] ?? 'Running on checked dates until month-end'));
+        ($holds[$hold] ?? ($hold ? 'Sending held: '.$hold : 'Running on checked dates until month-end')));
+    if ($campaign->enabled && \local_senscyreminders\delivery_policy::read()['configured']
+            && !\local_senscyreminders\delivery_policy::budget($campaign)) { $status='DEV test limit reached (10 attempts); sending stopped'; }
     $base = '/local/senscyreminders/';
     $actions = html_writer::link(new moodle_url($base . 'edit.php', ['id' => $campaign->id]), 'Edit') . ' | '
         . html_writer::link(new moodle_url($base . 'preview.php', ['id' => $campaign->id]), 'Dates / preview / start') . ' | '

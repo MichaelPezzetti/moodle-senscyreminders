@@ -1,4 +1,4 @@
-# SensCy training reminders engine 0.3.1
+# SensCy training reminders engine 0.4.0
 
 A standalone Moodle local plugin for manually started training reminder runs. Uses your existing course and native H5P activities (`h5pactivity`). No group-to-video mapping is needed. It does not change completions, certificates or course access restrictions.
 
@@ -45,15 +45,15 @@ Upload one PNG, JPEG or GIF up to 512 KB and 4000 pixels per dimension. Uploaded
 - Removing or disabling tracking/completion on an approved H5P holds sending for review, even when other H5Ps remain. Newly added tracked H5Ps are included automatically.
 - Stop All turns off the master switch and pauses every run. Start / Resume enables only the reviewed run.
 - Maintenance mode or an upgrade in progress blocks sending. A Moodle branch change, for example 4.5 to 5.2, blocks existing approvals until you review and resume. Retain the plugin and its database tables across the core upgrade.
-- The plugin refuses live submission if Moodle blocks or diverts mail. Local XAMPP retains `noemailever=true`; this plugin does not remove it.
+- The plugin refuses submission when Moodle disables email. Normal sending also refuses diverted mail; the bounded DEV mode below is the only diversion exception. Local XAMPP retains `noemailever=true`; this plugin does not remove it.
 
 The plugin uses Moodle's immediate `email_to_user()` transport after final checks. Durable unique learner/run/sending-date reservations and shared-address checks prevent automatic duplicate attempts. `submitted` means transport accepted the message, not confirmed inbox delivery. `held` or `reserved` means delivery is uncertain and is never automatically retried for that date. Review provider logs before any manual resend. A completion arriving after the final check cannot recall a submitted message.
 
 ## Installation and upgrades
 
-Install `local_senscyreminders-0.3.1.zip` using Moodle's plugin installer, then visit **Notifications**. Manual location: `local/senscyreminders` under the Moodle 4.5 web root, or `public/local/senscyreminders` in Moodle 5.2's source tree. Requires Moodle 4.5+ and native H5P. PHP/database requirements follow the Moodle version.
+Install `local_senscyreminders-0.4.0.zip` using Moodle's plugin installer, then visit **Notifications**. Manual location: `local/senscyreminders` under the Moodle 4.5 web root, or `public/local/senscyreminders` in Moodle 5.2's source tree. Requires Moodle 4.5+ and native H5P. PHP/database requirements follow the Moodle version.
 
-Upgrading to 0.3 pauses all sending for review. Upgrading from 0.1 preserves configuration and history, converts weekly indexes to date keys, and pauses all sending for review. Existing explicit H5P pools remain until the run is edited with the new form, which adopts the course-wide H5P rule.
+Upgrading to 0.4.0 pauses all sending and revokes approval, preserving messages and history. Delivery settings are bound to each new approval. Upgrading from 0.1 preserves configuration and history, converts weekly indexes to date keys, and pauses all sending for review. Existing explicit H5P pools remain until the run is edited with the new form, which adopts the course-wide H5P rule.
 
 Use staging first. Disable overlapping Re-engagement/other reminders before activation: this plugin cannot stop another plugin's queued mail. Verify actual H5P content, sample accounts and the recipient CSV. Test real HTML/logo delivery in an internal-only staging course before client rollout. Automated tests do not establish actual SMTP delivery.
 
@@ -68,3 +68,20 @@ Management requires `local/senscyreminders:manage`, implicitly available to site
 Integration tests require localhost site/database and `noemailever=true`, use synthetic fixtures and fake transport, and roll back database changes. See VALIDATION.md for executed checks and limits.
 
 License: GNU GPL v3 or later. See COPYING.txt.
+
+
+## Bounded DEV diversion testing (0.4.0)
+
+Keep Moodle's ALL-email diversion enabled with **no exceptions**. From the controls' Settings link configure:
+
+- Enable bounded DEV diversion testing.
+- Exact DEV root URL (not a course/activity URL).
+- One required diversion mailbox, exactly matching `$CFG->divertallemailsto`.
+- One DEV course ID and 1–10 positive learner IDs.
+- Expiry in `YYYY-MM-DD HH:MM`, America/New_York, within the next 48 hours.
+
+Save settings, review the recipient preview, then explicitly Start / Resume. Only allowlisted eligible learners in that course are considered. Normal H5P completion suppression still applies. The message uses the original learner's names, but a cloned recipient is explicitly addressed to the fixed mailbox before entering Moodle's mailer. Subjects include `[DEV TEST user <id>]`; Moodle also prepends its diversion marker. History `dev_diversion_accepted` means test-mail transport acceptance, not learner delivery.
+
+At most **10 reserved, submitted or held attempts per run** are permitted in total, including previous sending dates. This cap is not reset by pause/resume or a new date. Stop All and the usual duplicate protection still apply. A new run must be explicitly prepared/reviewed for further tests; do not erase history to retry.
+
+Missing/changed diversion, diversion exceptions, expired settings, another course, an unlisted learner or changed settings block sending. `$CFG->noemailever` always blocks native transport, even in test mode. Saving these fields changes the reviewed delivery policy; resume explicitly. Disabling the checkbox stops test sending; it does not fall back to original learner addresses. To return to normal operation, clear **all** DEV fields, disable the checkbox, and review/resume on the intended site. Never remove diversion merely to bypass a test failure.

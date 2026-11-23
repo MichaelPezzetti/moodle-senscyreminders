@@ -8,14 +8,20 @@ A **Training reminders** course activity backed by one reminder engine. Administ
 
 Install these **two plugins once, in this order**:
 
-1. [Reminder engine — local_senscyreminders 0.3.1](dist/local_senscyreminders-0.3.1.zip?raw=1)
+1. [Reminder engine — local_senscyreminders 0.4.0](dist/local_senscyreminders-0.4.0.zip?raw=1)
 2. [Course activity — mod_senscyreminder 0.1.0](dist/mod_senscyreminder-0.1.0.zip?raw=1)
 
-Or [download the complete bundle](dist/SensCy-Reminders-Activity-Bundle-0.3.1.zip?raw=1), extract it, and install its two ZIPs separately. **Do not upload the outer bundle or GitHub's source-code ZIP to Moodle's plugin installer.**
+Or [download the complete bundle](dist/SensCy-Reminders-Activity-Bundle-0.4.0.zip?raw=1), extract it, and install its two ZIPs separately. **Do not upload the outer bundle or GitHub's source-code ZIP to Moodle's plugin installer.**
 
 Follow [INSTALL.md](INSTALL.md). Then, in the existing training course, choose **Add an activity or resource → Training reminders**. Keep it hidden from students. Save/display opens the course-specific controls. Reuse this one activity for later training months.
 
 Sending starts OFF. Updating the engine or adding/editing/deleting the activity pauses affected sending for review. The activity adds no second email scheduler.
+
+## Existing DEV installation
+
+If the activity is already installed at 0.1.0, upgrade **only the engine to 0.4.0** and complete Moodle Notifications. The upgrade preserves messages/history and pauses all sending for fresh review.
+
+**Keep global email diversion enabled for DEV.** Engine Settings now offer bounded DEV diversion testing: exact site root, matching single mailbox with no diversion exceptions, one course ID, 1–10 allowed learner IDs, and an expiry within 48 hours (America/New_York). The preview and dispatch use the allowlist. Test messages retain learner names but are explicitly addressed to the test mailbox, tagged `[DEV TEST user <id>]`, and limited to ten attempts per run. Missing diversion or changed settings blocks sending; noemailever remains respected. Saving settings requires explicit review/resume. See the [engine README](local/senscyreminders/README.md#bounded-dev-diversion-testing-040).
 
 ## Behavior
 
@@ -35,7 +41,7 @@ Disable overlapping legacy Re-engagement/reminder automation separately. Stop Al
 
 | Directory | Moodle component | Version |
 | --- | --- | --- |
-| `local/senscyreminders` | `local_senscyreminders` | 0.3.1 / 2026111700 |
+| `local/senscyreminders` | `local_senscyreminders` | 0.4.0 / 2026112300 |
 | `mod/senscyreminder` | `mod_senscyreminder` | 0.1.0 / 2026111600 |
 | `dist` | Installable ZIPs and SHA-256 checksums | Current reviewed build |
 
@@ -57,7 +63,7 @@ After installing both components in a **localhost-only test Moodle** with `$CFG-
 php local/senscyreminders/tests/local_integration.php /absolute/path/to/moodle-webroot
 ```
 
-The integration harness creates synthetic fixtures, uses fake transport and rolls back its database changes. It rejects non-local environments. The packaged build passed 39 pure assertions and 73 integration assertions per test site. Separate loopback SMTP captures verified the rendered email on both target Moodle versions; details and limitations are in [VALIDATION.md](VALIDATION.md).
+The integration harness creates synthetic fixtures, uses fake transport and rolls back its database changes. It rejects non-local environments. The packaged build passed 39 pure assertions and 100 integration assertions per test site. Separate loopback SMTP captures verified the rendered email on both target Moodle versions; details and limitations are in [VALIDATION.md](VALIDATION.md).
 
 ## Moodle hosting review
 
